@@ -108,6 +108,9 @@ Files larger than 500 MB are skipped.
 
 ---
 
+## For files greater than 500 MB
+To know what large files are going to be skipped, run the script with `--scan-large` argument. It will print all files above the size limit and generate a report on Desktop.
+
 ## How to run it
 
 Make sure Python is installed, then open a terminal in the folder where the script is saved and run.
@@ -132,6 +135,6 @@ The script cannot catch everything. Go through these yourself before migrating.
 
 ---
 
-## After copying to Linux
+## After copying
 
 The PRIVATE folder contains sensitive files. Keep it off cloud storage or delete it once you have set things up on new machine. Do not leave SSH keys or env files sitting in an unprotected location.

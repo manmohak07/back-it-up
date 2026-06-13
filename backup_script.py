@@ -425,6 +425,79 @@ def deep_scan():
                 process_file(full_path)
 
 
+# Scans for files > 500 MB and writes a report.
+# Run this separately BEFORE the main backup to decide
+# which large files you want to manually move.
+
+def scan_large_files():
+    print("\n[LARGE FILE SCAN STARTED]")
+    print(f"Threshold: {MAX_FILE_SIZE // (1024 * 1024)} MB\n")
+
+    large_files = []
+
+    for location in SCAN_LOCATIONS:
+        if not location.exists():
+            continue
+
+        for root, dirs, files in os.walk(location):
+            dirs[:] = [
+                d for d in dirs
+                if not should_skip(os.path.join(root, d))
+            ]
+
+            if should_skip(root):
+                continue
+
+            for file_name in files:
+                full_path = Path(root) / file_name
+
+                if BACKUP_ROOT in full_path.parents:
+                    continue
+
+                try:
+                    size = full_path.stat().st_size
+
+                    if size > MAX_FILE_SIZE:
+                        large_files.append((full_path, size))
+
+                except Exception:
+                    continue
+
+    if not large_files:
+        print("No files above the size limit found.")
+        return
+
+    large_files.sort(key=lambda x: x[1], reverse=True)
+
+    print(f"{'SIZE':>10}   PATH")
+    print("-" * 80)
+
+    for file_path, size in large_files:
+        size_mb = size / (1024 * 1024)
+        print(f"{size_mb:>9.1f}M   {file_path}")
+
+    report_path = HOME / "Desktop" / "large_files_report.txt"
+
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("LARGE FILES REPORT\n")
+        f.write(f"Files above {MAX_FILE_SIZE // (1024 * 1024)} MB\n")
+        f.write("=" * 80 + "\n\n")
+        f.write(f"{'SIZE (MB)':>12}   PATH\n")
+        f.write("-" * 80 + "\n")
+
+        for file_path, size in large_files:
+            size_mb = size / (1024 * 1024)
+            f.write(f"{size_mb:>11.1f}   {file_path}\n")
+
+        f.write("\n" + "=" * 80 + "\n")
+        f.write(f"Total large files found: {len(large_files)}\n")
+
+    print(f"\n[+] Report saved to: {report_path}")
+    print(f"[+] Total large files found: {len(large_files)}")
+    print("\nReview the report, then manually copy or move")
+    print("the ones you want to keep into your backup folder.")
+
+
 def print_summary():
 
     print("\n" + "=" * 60)
@@ -440,16 +513,28 @@ def print_summary():
     print(BACKUP_ROOT)
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("WINDOWS TO LINUX BACKUP ORGANIZER")
-    print("=" * 60)
+    
+    import sys
 
-    setup_backup_structure()
+    if "--scan-large" in sys.argv:
 
-    backup_private_files()
+        print("=" * 60)
+        print("LARGE FILE SCANNER")
+        print("=" * 60)
 
-    deep_scan()
+        scan_large_files()
+    
+    else:
+        print("=" * 60)
+        print("WINDOWS TO LINUX BACKUP ORGANIZER")
+        print("=" * 60)
 
-    print_summary()
+        setup_backup_structure()
 
-    print("\n[DONE]")
+        backup_private_files()
+
+        deep_scan()
+
+        print_summary()
+
+        print("\n[DONE]")
